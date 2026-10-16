@@ -58,7 +58,6 @@ class SocketService(
             val reader = BufferedReader(InputStreamReader(socket.getInputStream()))
             this.printWriter = writer
 
-            // Handshake exchange: OFFTALK1:<channel>
             writer.println("$appId:$expectedChannel")
             val handshakeMsg = reader.readLine()
 
@@ -67,7 +66,6 @@ class SocketService(
                 if (remoteChannel == expectedChannel) {
                     onHandshakeResult(true, socket.inetAddress.hostAddress)
 
-                    // Continuous reader loop for SOS signaling
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
                         line?.let {

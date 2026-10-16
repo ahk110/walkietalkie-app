@@ -45,7 +45,6 @@ fun MainScreen(
 
     val context = LocalContext.current
 
-    // SOS Received Dialog
     sosReceivedCoords?.let { coords ->
         AlertDialog(
             onDismissRequest = { onDismissSos() },
@@ -79,7 +78,6 @@ fun MainScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // App Title Bar
         Text(
             text = "OffTalk P2P",
             color = TextPrimary,
@@ -88,7 +86,6 @@ fun MainScreen(
             modifier = Modifier.padding(top = 8.dp)
         )
 
-        // Status Card
         Card(
             colors = CardDefaults.cardColors(containerColor = SurfaceDark),
             modifier = Modifier
@@ -121,7 +118,6 @@ fun MainScreen(
             }
         }
 
-        // Channel Input & Search Button
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -153,7 +149,6 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Peer List Section
         Text(
             text = "Nearby Phones Running OffTalk:",
             color = TextSecondary,
@@ -202,7 +197,6 @@ fun MainScreen(
             }
         }
 
-        // SOS Button
         Button(
             onClick = { onSosClicked() },
             colors = ButtonDefaults.buttonColors(containerColor = SosRed),
@@ -218,7 +212,6 @@ fun MainScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Hold-to-Talk Big Button
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
