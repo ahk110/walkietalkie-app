@@ -15,7 +15,6 @@ class SocketService(
     private var serverSocket: ServerSocket? = null
     private var clientSocket: Socket? = null
     private var printWriter: PrintWriter? = null
-
     @Volatile private var isRunning = false
     private val tcpPort = 50004
     private val appId = "OFFTALK1"
@@ -26,14 +25,11 @@ class SocketService(
         thread {
             try {
                 serverSocket = ServerSocket(tcpPort)
-                Log.d("SocketService", "TCP Server active on $tcpPort")
                 while (isRunning) {
                     val socket = serverSocket?.accept() ?: break
                     handleConnection(socket, channelCode)
                 }
-            } catch (e: Exception) {
-                Log.e("SocketService", "Server error", e)
-            }
+            } catch (e: Exception) { Log.e("SocketService", "Server error", e) }
         }
     }
 
@@ -45,7 +41,6 @@ class SocketService(
                 val socket = Socket(hostAddress, tcpPort)
                 handleConnection(socket, channelCode)
             } catch (e: Exception) {
-                Log.e("SocketService", "Client connect error", e)
                 onHandshakeResult(false, null)
             }
         }
@@ -65,50 +60,22 @@ class SocketService(
                 val remoteChannel = handshakeMsg.substringAfter("$appId:")
                 if (remoteChannel == expectedChannel) {
                     onHandshakeResult(true, socket.inetAddress.hostAddress)
-
                     var line: String?
                     while (reader.readLine().also { line = it } != null) {
-                        line?.let {
-                            if (it.startsWith("SOS:")) {
-                                onSosReceived(it.substringAfter("SOS:"))
-                            }
-                        }
+                        line?.let { if (it.startsWith("SOS:")) onSosReceived(it.substringAfter("SOS:")) }
                     }
-                } else {
-                    Log.e("SocketService", "Channel mismatch: $remoteChannel vs $expectedChannel")
-                    socket.close()
-                    onHandshakeResult(false, null)
-                }
-            } else {
-                socket.close()
-                onHandshakeResult(false, null)
-            }
-        } catch (e: Exception) {
-            Log.e("SocketService", "Connection handshaking error", e)
-            onHandshakeResult(false, null)
-        }
+                } else { socket.close(); onHandshakeResult(false, null) }
+            } else { socket.close(); onHandshakeResult(false, null) }
+        } catch (e: Exception) { socket.close(); onHandshakeResult(false, null) }
     }
 
     fun sendSos(coords: String) {
-        thread {
-            try {
-                printWriter?.println("SOS:$coords")
-            } catch (e: Exception) {
-                Log.e("SocketService", "Failed to send SOS", e)
-            }
-        }
+        thread { try { printWriter?.println("SOS:$coords") } catch (_: Exception) {} }
     }
 
     fun stop() {
         isRunning = false
-        try {
-            clientSocket?.close()
-            serverSocket?.close()
-        } catch (e: Exception) {
-            Log.e("SocketService", "Error stopping sockets", e)
-        }
-        clientSocket = null
-        serverSocket = null
-        printWriter = null
+        try { clientSocket?.close(); serverSocket?.close() } catch (_: Exception) {}
+        clientSocket = null; serverSocket = null; printWriter = null
     }
 }

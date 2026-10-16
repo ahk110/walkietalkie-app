@@ -23,7 +23,6 @@ import com.offtalk.app.ui.theme.OffTalkTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
-
     private var offTalkService: OffTalkService? = null
     private var isBound = false
 
@@ -42,17 +41,10 @@ class MainActivity : ComponentActivity() {
 
     private val requestPermissionsLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        val allGranted = permissions.entries.all { it.value }
-        if (!allGranted) {
-            Toast.makeText(this, "Permissions required for Wi-Fi Direct and Audio", Toast.LENGTH_LONG).show()
-        }
-        checkHardwareStates()
-    }
+    ) { permissions -> checkHardwareStates() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate()
-
         requestRequiredPermissions()
 
         val serviceIntent = Intent(this, OffTalkService::class.java)
@@ -84,9 +76,7 @@ class MainActivity : ComponentActivity() {
                         checkHardwareStates()
                         offTalkService?.startDiscovery(channel)
                     },
-                    onConnectClicked = { peer ->
-                        offTalkService?.connectToPeer(peer.deviceAddress)
-                    },
+                    onConnectClicked = { peer -> offTalkService?.connectToPeer(peer.deviceAddress) },
                     onPttPressStateChanged = { pressed ->
                         if (pressed) offTalkService?.startTalking() else offTalkService?.stopTalking()
                     },
@@ -94,9 +84,7 @@ class MainActivity : ComponentActivity() {
                         offTalkService?.sendSos()
                         Toast.makeText(this, "SOS Broadcast Sent", Toast.LENGTH_SHORT).show()
                     },
-                    onDismissSos = {
-                        offTalkService?.clearSosEvent()
-                    }
+                    onDismissSos = { offTalkService?.clearSosEvent() }
                 )
             }
         }
@@ -105,40 +93,26 @@ class MainActivity : ComponentActivity() {
     private fun checkHardwareStates() {
         val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         if (!wifiManager.isWifiEnabled) {
-            Toast.makeText(this, "Wi-Fi is OFF. Please enable Wi-Fi for Wi-Fi Direct.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Wi-Fi is OFF. Enable Wi-Fi for Wi-Fi Direct.", Toast.LENGTH_LONG).show()
         }
-
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-            Toast.makeText(this, "Location/GPS is OFF. Required for Wi-Fi Direct peer discovery and SOS.", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Location/GPS is OFF. Required for Wi-Fi Direct and SOS.", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun requestRequiredPermissions() {
-        val permissions = mutableListOf(
-            Manifest.permission.RECORD_AUDIO,
-            Manifest.permission.ACCESS_FINE_LOCATION
-        )
-
+        val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_FINE_LOCATION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.NEARBY_WIFI_DEVICES)
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }
-
-        val missing = permissions.filter {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missing.isNotEmpty()) {
-            requestPermissionsLauncher.launch(missing.toTypedArray())
-        }
+        val missing = permissions.filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
+        if (missing.isNotEmpty()) requestPermissionsLauncher.launch(missing.toTypedArray())
     }
 
     override fun onDestroy() {
-        if (isBound) {
-            unbindService(connection)
-            isBound = false
-        }
+        if (isBound) { unbindService(connection); isBound = false }
         super.onDestroy()
     }
 }

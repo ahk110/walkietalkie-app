@@ -42,7 +42,6 @@ fun MainScreen(
 ) {
     var channelInput by remember { mutableStateOf("1234") }
     var isPttPressed by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
     sosReceivedCoords?.let { coords ->
@@ -59,75 +58,39 @@ fun MainScreen(
                         val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri)
                         context.startActivity(mapIntent)
                     }
-                ) {
-                    Text("Open in Maps")
-                }
+                ) { Text("Open in Maps") }
             },
-            dismissButton = {
-                TextButton(onClick = { onDismissSos() }) {
-                    Text("Silence Alarm")
-                }
-            }
+            dismissButton = { TextButton(onClick = { onDismissSos() }) { Text("Silence Alarm") } }
         )
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(DarkBackground)
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().background(DarkBackground).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "OffTalk P2P",
-            color = TextPrimary,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(top = 8.dp)
-        )
+        Text("OffTalk P2P", color = TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 8.dp))
 
         Card(
             colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp)
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 val statusColor = when (statusText) {
                     "Connected" -> PttGreen
                     "Connecting..." -> Color(0xFFF59E0B)
                     "Searching..." -> PrimaryBlue
                     else -> TextSecondary
                 }
-                Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(statusColor)
-                )
+                Box(modifier = Modifier.size(12.dp).clip(CircleShape).background(statusColor))
                 Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Status: $statusText",
-                    color = TextPrimary,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Medium
-                )
+                Text("Status: $statusText", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Medium)
             }
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             OutlinedTextField(
                 value = channelInput,
-                onValueChange = {
-                    channelInput = it
-                    onChannelChange(it)
-                },
+                onValueChange = { channelInput = it; onChannelChange(it) },
                 label = { Text("Channel Code") },
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = PrimaryBlue,
@@ -142,56 +105,25 @@ fun MainScreen(
             Button(
                 onClick = { onSearchClicked(channelInput) },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
-            ) {
-                Text("Search")
-            }
+            ) { Text("Search") }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
+        Text("Nearby Phones Running OffTalk:", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.align(Alignment.Start))
 
-        Text(
-            text = "Nearby Phones Running OffTalk:",
-            color = TextSecondary,
-            fontSize = 14.sp,
-            modifier = Modifier.align(Alignment.Start)
-        )
-        Text(
-            text = "Note: Target phone will show a system dialog to accept connection.",
-            color = TextSecondary,
-            fontSize = 11.sp,
-            modifier = Modifier.align(Alignment.Start)
-        )
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
+        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth().padding(vertical = 8.dp)) {
             items(discoveredPeers) { peer ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = SurfaceDark),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
-                ) {
+                Card(colors = CardDefaults.cardColors(containerColor = SurfaceDark), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
+                        modifier = Modifier.fillMaxWidth().padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(text = peer.deviceName, color = TextPrimary, fontWeight = FontWeight.Bold)
-                            Text(text = "Channel: ${peer.channelCode}", color = TextSecondary, fontSize = 12.sp)
+                            Text(peer.deviceName, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            Text("Channel: ${peer.channelCode}", color = TextSecondary, fontSize = 12.sp)
                         }
-                        Button(
-                            onClick = { onConnectClicked(peer) },
-                            colors = ButtonDefaults.buttonColors(containerColor = PttGreen)
-                        ) {
-                            Text("Connect")
-                        }
+                        Button(onClick = { onConnectClicked(peer) }, colors = ButtonDefaults.buttonColors(containerColor = PttGreen)) { Text("Connect") }
                     }
                 }
             }
@@ -201,9 +133,7 @@ fun MainScreen(
             onClick = { onSosClicked() },
             colors = ButtonDefaults.buttonColors(containerColor = SosRed),
             shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+            modifier = Modifier.fillMaxWidth().height(50.dp)
         ) {
             Icon(Icons.Default.Warning, contentDescription = null, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
@@ -220,33 +150,15 @@ fun MainScreen(
                 .background(if (isPttPressed) PttPressed else PttGreen)
                 .pointerInteropFilter { event ->
                     when (event.action) {
-                        MotionEvent.ACTION_DOWN -> {
-                            isPttPressed = true
-                            onPttPressStateChanged(true)
-                            true
-                        }
-                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                            isPttPressed = false
-                            onPttPressStateChanged(false)
-                            true
-                        }
+                        MotionEvent.ACTION_DOWN -> { isPttPressed = true; onPttPressStateChanged(true); true }
+                        MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> { isPttPressed = false; onPttPressStateChanged(false); true }
                         else -> false
                     }
                 }
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = "PTT",
-                    tint = Color.White,
-                    modifier = Modifier.size(48.dp)
-                )
-                Text(
-                    text = if (isPttPressed) "TALKING..." else "HOLD TO TALK",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
+                Icon(Icons.Default.Mic, contentDescription = "PTT", tint = Color.White, modifier = Modifier.size(48.dp))
+                Text(if (isPttPressed) "TALKING..." else "HOLD TO TALK", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
             }
         }
 

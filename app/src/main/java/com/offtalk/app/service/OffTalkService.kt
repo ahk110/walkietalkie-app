@@ -23,36 +23,25 @@ import kotlinx.coroutines.flow.StateFlow
 import java.net.InetAddress
 
 class OffTalkService : Service() {
-
     private val binder = LocalBinder()
-
-    private val _statusText = MutableStateFlow("Disconnected")
-    val statusText: StateFlow<String> = _statusText
-
-    private val _discoveredPeers = MutableStateFlow<List<PeerDevice>>(emptyList())
-    val discoveredPeers: StateFlow<List<PeerDevice>> = _discoveredPeers
-
-    private val _sosReceivedEvent = MutableStateFlow<String?>(null)
-    val sosReceivedEvent: StateFlow<String?> = _sosReceivedEvent
+    val statusText = MutableStateFlow("Disconnected")
+    val discoveredPeers = MutableStateFlow<List<PeerDevice>>(emptyList())
+    val sosReceivedEvent = MutableStateFlow<String?>(null)
 
     private lateinit var wifiDirectManager: WifiDirectManager
     private lateinit var socketService: SocketService
     private lateinit var audioEngine: AudioEngine
     private lateinit var locationProvider: LocationProvider
-
     private var connectedAddress: InetAddress? = null
     private var alarmRingtone: Ringtone? = null
+    private var currentChannel: String = "1234"
 
-    inner class LocalBinder : Binder() {
-        fun getService(): OffTalkService = this@OffTalkService
-    }
-
+    inner class LocalBinder : Binder() { fun getService(): OffTalkService = this@OffTalkService }
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onCreate() {
         super.onCreate()
         startForegroundServiceNotification()
-
         audioEngine = AudioEngine()
         locationProvider = LocationProvider(this)
         locationProvider.startLocationUpdates()
@@ -61,24 +50,24 @@ class OffTalkService : Service() {
             onHandshakeResult = { success, hostAddress ->
                 if (success && hostAddress != null) {
                     connectedAddress = InetAddress.getByName(hostAddress)
-                    _statusText.value = "Connected"
+                    statusText.value = "Connected"
                     audioEngine.startPlayback()
                 } else {
-                    _statusText.value = "Disconnected"
+                    statusText.value = "Disconnected"
                     audioEngine.stopPlayback()
                 }
             },
             onSosReceived = { coords ->
-                _sosReceivedEvent.value = coords
-                playAlarmSound()
+                sosReceivedEvent.value = coords
+                try { alarmRingtone?.play() } catch (_: Exception) {}
             }
         )
 
         wifiDirectManager = WifiDirectManager(
             context = this,
-            onPeersUpdated = { peers -> _discoveredPeers.value = peers },
+            onPeersUpdated = { peers -> discoveredPeers.value = peers },
             onConnectionInfoAvailable = { info ->
-                _statusText.value = "Connecting..."
+                statusText.value = "Connecting..."
                 if (info.groupFormed && info.isGroupOwner) {
                     socketService.startServer(currentChannel)
                 } else if (info.groupFormed) {
@@ -88,92 +77,48 @@ class OffTalkService : Service() {
         )
         wifiDirectManager.registerReceiver()
 
-        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+        val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM) ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
         alarmRingtone = RingtoneManager.getRingtone(applicationContext, alarmUri)
     }
 
-    private var currentChannel: String = "1234"
-
     fun startDiscovery(channelCode: String) {
         currentChannel = channelCode
-        _statusText.value = "Searching..."
+        statusText.value = "Searching..."
         wifiDirectManager.startServiceBroadcastingAndDiscovery(channelCode)
     }
 
     fun connectToPeer(deviceAddress: String) {
-        _statusText.value = "Connecting..."
-        wifiDirectManager.connectToDevice(deviceAddress) {
-            _statusText.value = "Connecting..."
-        }
+        statusText.value = "Connecting..."
+        wifiDirectManager.connectToDevice(deviceAddress) { statusText.value = "Connecting..." }
     }
 
-    fun startTalking() {
-        connectedAddress?.let {
-            audioEngine.startRecording(it)
-        }
-    }
-
-    fun stopTalking() {
-        audioEngine.stopRecording()
-    }
-
-    fun sendSos() {
-        val coords = locationProvider.getLastKnownCoordinates()
-        socketService.sendSos(coords)
-    }
-
-    fun clearSosEvent() {
-        _sosReceivedEvent.value = null
-        alarmRingtone?.stop()
-    }
-
-    private fun playAlarmSound() {
-        try {
-            alarmRingtone?.play()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
+    fun startTalking() { connectedAddress?.let { audioEngine.startRecording(it) } }
+    fun stopTalking() { audioEngine.stopRecording() }
+    fun sendSos() { socketService.sendSos(locationProvider.getLastKnownCoordinates()) }
+    fun clearSosEvent() { sosReceivedEvent.value = null; alarmRingtone?.stop() }
 
     private fun startForegroundServiceNotification() {
         val channelId = "offtalk_service_channel"
         val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                "OffTalk P2P Service",
-                NotificationManager.IMPORTANCE_LOW
-            )
+            val channel = NotificationChannel(channelId, "OffTalk P2P Service", NotificationManager.IMPORTANCE_LOW)
             manager.createNotificationChannel(channel)
         }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val notification: Notification = NotificationCompat.Builder(this, channelId)
+        val pendingIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(this, channelId)
             .setContentTitle("OffTalk Active")
             .setContentText("Offline Walkie-Talkie is running in background")
             .setSmallIcon(android.R.drawable.stat_sys_speakerphone)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .build()
-
         startForeground(1001, notification)
     }
 
     override fun onDestroy() {
-        audioEngine.stopRecording()
-        audioEngine.stopPlayback()
-        socketService.stop()
-        wifiDirectManager.unregisterReceiver()
-        locationProvider.stopLocationUpdates()
-        alarmRingtone?.stop()
+        audioEngine.stopRecording(); audioEngine.stopPlayback()
+        socketService.stop(); wifiDirectManager.unregisterReceiver()
+        locationProvider.stopLocationUpdates(); alarmRingtone?.stop()
         super.onDestroy()
     }
 }
