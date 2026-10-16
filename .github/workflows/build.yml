@@ -23,11 +23,10 @@ jobs:
       uses: gradle/actions/setup-gradle@v3
 
     - name: Build Debug APK
-      working-directory: ./walkietalkie-app
       run: gradle assembleDebug --stacktrace
 
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: walkietalkie-app/app/build/outputs/apk/debug/app-debug.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
