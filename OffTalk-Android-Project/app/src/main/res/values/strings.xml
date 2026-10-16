@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">OffTalk</string>
+    <string name="channel_default">1234</string>
+</resources>
