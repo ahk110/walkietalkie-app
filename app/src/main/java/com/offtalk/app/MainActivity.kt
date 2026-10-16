@@ -44,7 +44,7 @@ class MainActivity : ComponentActivity() {
     ) { permissions -> checkHardwareStates() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate()
+        super.onCreate(savedInstanceState)
         requestRequiredPermissions()
 
         val serviceIntent = Intent(this, OffTalkService::class.java)
